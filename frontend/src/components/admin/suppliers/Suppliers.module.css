@@ -1,0 +1,29 @@
+/* ========================================
+   ESTILOS PROPIOS DE PROVEEDORES
+   ======================================== */
+
+.companyCell strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.contactCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contactCell span {
+  white-space: nowrap;
+}
+
+.contactCell span:last-child {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.menuSeparator {
+  height: 1px;
+  margin: 6px 4px;
+  background: #e5e7eb;
+}

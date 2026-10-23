@@ -1,0 +1,45 @@
+/* ========================================
+   ESTILOS PROPIOS DE CATEGORÍAS
+   ======================================== */
+
+.companyCell {
+  display: flex;
+  align-items: center;
+  min-width: 180px;
+}
+
+.companyCell strong {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.categorySlug {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.descriptionCell {
+  display: inline-block;
+  max-width: 280px;
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.productCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.positionValue {
+  color: #6b7280;
+  font-size: 13px;
+}
