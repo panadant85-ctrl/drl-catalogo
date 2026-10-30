@@ -1,5 +1,7 @@
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  process.env.NEXT_PUBLIC_API_URL || "http://192.168.1.46:4000";
+
+  console.log("API_URL utilizada:", API_URL);
 
 const ADMIN_SESSION_KEY =
   "drl_electronik_admin_session";
@@ -436,8 +438,41 @@ export async function getCustomerProfile(
   return data;
 }
 
+export async function createCustomerOrder(
+  accessToken: string,
+  data: {
+    delivery: boolean;
+    address?: string | null;
+    notes?: string | null;
+    items: {
+      product_id: number;
+      quantity: number;
+      variant?: string | null;
+    }[];
+  }
+) {
+  const response = await fetch(
+    `${API_URL}/api/auth/me/orders`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(data),
+    }
+  );
 
+  const result = await response.json();
 
+  if (!response.ok) {
+    throw new Error(
+      result?.message || "No se pudo crear el pedido."
+    );
+  }
+
+  return result;
+}
 
 export async function updateCustomerProfile(
   accessToken: string,
@@ -491,6 +526,7 @@ export async function updateCustomerProfile(
 
 
 
+
 export async function getCustomerCart(
   accessToken: string
 ) {
@@ -505,17 +541,35 @@ export async function getCustomerCart(
     }
   );
 
-  const data = await response.json();
+  const responseText = await response.text();
+
+  let data: any = null;
+
+  try {
+    data = responseText
+      ? JSON.parse(responseText)
+      : null;
+  } catch {
+    data = { rawResponse: responseText };
+  }
 
   if (!response.ok) {
+    console.error("Error al consultar /api/cart:", {
+      status: response.status,
+      statusText: response.statusText,
+      message: data?.message,
+      response: data,
+    });
+
     throw new Error(
       data?.message ||
-        "No se pudo obtener el carrito."
+        `No se pudo obtener el carrito (HTTP ${response.status}).`
     );
   }
 
   return data;
 }
+
 
 export async function addCustomerCartItem(
   accessToken: string,

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import Checkout from "@/components/storefront/Checkout";
+import { useStorefront } from "@/components/storefront/StorefrontProvider";
 
 type Product = {
   id: number;
@@ -18,45 +19,26 @@ type Product = {
   images?: string[] | null;
 };
 
-type CartItem = {
-  product: Product;
-  quantity: number;
-};
-
-const CART_KEY = "drl_electronik_cart";
-
 export default function CheckoutPage() {
   const router = useRouter();
 
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const {
+      cart,
+      setCartOpen,
+      updateCartQuantityGlobal,
+    } = useStorefront();
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const savedCart =
-        localStorage.getItem(CART_KEY);
-
-      if (savedCart) {
-        const parsedCart =
-          JSON.parse(savedCart);
-
-        if (Array.isArray(parsedCart)) {
-          setCart(parsedCart);
-        }
-      }
-    } catch (error) {
-      console.error(
-        "No se pudo cargar el carrito:",
-        error
-      );
-    } finally {
       setLoading(false);
-    }
-  }, []);
+    }, []);
 
+  
   function backToCart() {
-    router.push("/?cart=1");
+    router.push("/cart");
   }
+
 
   function backToStore() {
     router.push("/");
@@ -131,10 +113,11 @@ export default function CheckoutPage() {
 
   return (
     <main className="min-h-screen bg-neutral-50">
-      <Checkout
+     <Checkout
         cart={cart}
         onBackToCart={backToCart}
         onBackToStore={backToStore}
+        onUpdateCartQuantity={updateCartQuantityGlobal}
       />
     </main>
   );

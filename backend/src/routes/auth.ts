@@ -14,7 +14,12 @@ import {
 } from "../services/customers/customerService";
 import {
   getOrdersByCustomerId,
+  createNewOrder,
 } from "../services/orders/orderService";
+import {
+  createOrderSchema,
+} from "../validators/orders/orderValidator";
+
 interface LoginBody {
   email?: string;
   phone?: string;
@@ -794,6 +799,93 @@ export async function authRoutes(
         return reply.status(500).send({
           success: false,
           message: "No se pudieron obtener tus pedidos.",
+        });
+      }
+    }
+  );
+
+  
+  // =========================================================
+  // CREAR PEDIDO DESDE EL CATÁLOGO ONLINE
+  // =========================================================
+
+  app.post(
+    "/api/auth/me/orders",
+    {
+      preHandler: app.authenticate,
+    },
+    async (request, reply) => {
+      const authUserId =
+        request.authenticatedUser?.id;
+
+      if (!authUserId) {
+        return reply.status(401).send({
+          success: false,
+          message: "Debes iniciar sesión para crear un pedido.",
+        });
+      }
+
+      try {
+        // El cliente se obtiene de la sesión autenticada.
+        const customer =
+          await getCustomerByAuthUserId(authUserId);
+
+        if (!customer) {
+          return reply.status(404).send({
+            success: false,
+            message:
+              "No existe un perfil de cliente asociado a esta cuenta.",
+          });
+        }
+
+        const body =
+          request.body &&
+          typeof request.body === "object" &&
+          !Array.isArray(request.body)
+            ? request.body as Record<string, unknown>
+            : {};
+
+        // Los datos de cliente y gestor se determinan
+        // en el servidor, nunca desde el navegador.
+        const bodyResult = createOrderSchema.safeParse({
+          ...body,
+          customer_id: customer.id,
+          manager_id: customer.manager_id ?? null,
+          source_type: customer.manager_id
+            ? "manager"
+            : "direct",
+        });
+
+        if (!bodyResult.success) {
+          return reply.status(400).send({
+            success: false,
+            message: "Los datos del pedido no son válidos.",
+            details: bodyResult.error.issues,
+          });
+        }
+
+        const result = await createNewOrder(
+          bodyResult.data
+        );
+
+        return reply.status(201).send({
+          success: true,
+          message: "Pedido creado correctamente.",
+          data: result.order,
+          items: result.items,
+        });
+      } catch (error) {
+        request.log.error(
+          error,
+          "Error creando un pedido del catálogo online"
+        );
+
+        return reply.status(400).send({
+          success: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : "No se pudo crear el pedido.",
         });
       }
     }

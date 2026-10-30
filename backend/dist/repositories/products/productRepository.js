@@ -13,7 +13,12 @@ const node_crypto_1 = require("node:crypto");
 async function findActiveProducts() {
     const { data, error } = await supabase_1.supabaseAdmin
         .from("products")
-        .select("*")
+        .select(`
+      *,
+      supplier:suppliers (
+        company_name
+      )
+    `)
         .eq("active", true)
         .order("id", { ascending: true });
     if (error) {

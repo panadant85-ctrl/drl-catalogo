@@ -114,7 +114,7 @@ async function createNewOrder(input) {
     /*
      * Verificar cliente
      */
-    const { data: customer, error: customerError, } = await supabase_1.supabase
+    const { data: customer, error: customerError, } = await supabase_1.supabaseAdmin
         .from("customers")
         .select("id")
         .eq("id", input.customer_id)
@@ -129,7 +129,7 @@ async function createNewOrder(input) {
      * Verificar gestor
      */
     if (input.manager_id) {
-        const { data: manager, error: managerError, } = await supabase_1.supabase
+        const { data: manager, error: managerError, } = await supabase_1.supabaseAdmin
             .from("managers")
             .select("id")
             .eq("id", input.manager_id)

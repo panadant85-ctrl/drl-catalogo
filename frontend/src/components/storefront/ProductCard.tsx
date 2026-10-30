@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Product = {
   id: number;
@@ -13,7 +14,7 @@ type Product = {
   stock?: number | null;
   description?: string | null;
   images?: string[] | null;
-  family_id?: number | null;
+  family_id?: number | string | null;
   variant?: string | null;
 };
 
@@ -55,6 +56,11 @@ export default function ProductCard({
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-red-200 hover:shadow-xl">
       {/* Imagen */}
+      <Link
+        href={`/producto/${selectedProduct.id}`}
+        className="block"
+        aria-label={`Ver detalle de ${selectedProduct.name}`}
+      >
       <div className="relative h-64 overflow-hidden bg-gradient-to-b from-neutral-50 to-white sm:h-72">
         {image ? (
           <img
@@ -130,6 +136,7 @@ export default function ProductCard({
           </svg>
         </button>
       </div>
+      </Link>
 
       {/* Información */}
       <div className="flex flex-1 flex-col p-5">
@@ -138,7 +145,12 @@ export default function ProductCard({
         </p>
 
         <h3 className="line-clamp-2 min-h-[3rem] text-[15px] font-extrabold leading-6 text-neutral-900 transition-colors group-hover:text-red-700">
-          {selectedProduct.name}
+          <Link
+            href={`/producto/${selectedProduct.id}`}
+            className="transition-colors hover:text-red-700"
+          >
+            {selectedProduct.name}
+          </Link>
         </h3>
 
         {/* Selector de variantes */}

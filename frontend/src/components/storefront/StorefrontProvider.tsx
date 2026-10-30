@@ -39,7 +39,7 @@ type CartItem = {
 type StorefrontContextType = {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
-
+  clearCartGlobal: () => Promise<void>;
   cart: CartItem[];
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
     addToCartGlobal: (
@@ -239,290 +239,333 @@ useEffect(() => {
   };
 }, [loggedIn]);
         
+ 
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadCustomerCartFromBackend() {
+    const savedSession = localStorage.getItem(
+      "drl_electronik_session"
+    );
+
+    if (!savedSession) {
+      return;
+    }
+
+    try {
+      const sessionData = JSON.parse(savedSession);
+
+      const accessToken =
+        sessionData?.session?.accessToken ??
+        sessionData?.accessToken;
+
+      if (!accessToken) {
+        console.warn(
+          "No se cargó el carrito: falta el token de sesión."
+        );
+        return;
+      }
+
+      const response = await getCustomerCart(accessToken);
+
+      if (cancelled) return;
+
+      const backendItems = Array.isArray(response?.data)
+        ? response.data
+        : [];
+
+      const frontendCart = backendItems
+        .filter((item: any) => item?.product)
+        .map((item: any) => ({
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            brand: item.product.brand,
+            model: item.product.model,
+            sku: item.product.sku,
+            category: item.product.category,
+            price: item.product.price,
+            stock: item.product.stock,
+            description: item.product.description,
+            images: item.product.images,
+            family_id: item.product.family_id,
+            variant: item.product.variant,
+          },
+          quantity: item.quantity,
+        }));
+
+      setCart(frontendCart);
+    } catch (error) {
+      if (cancelled) return;
+
+      console.error(
+        "No se pudo cargar el carrito desde el backend:",
+        error
+      );
+    }
+  }
+
+  if (loggedIn) {
+    void loadCustomerCartFromBackend();
+  }
+
+  return () => {
+    cancelled = true;
+  };
+}, [loggedIn, setCart]);
+
+
   useEffect(() => {
-        async function loadCustomerCartFromBackend() {
+        const totalItems = cart.reduce(
+          (total, item) => total + item.quantity,
+          0
+        );
+
+        setCartCount(totalItems);
+      }, [cart]);
+
+  /*inicio adToCart */
+  async function addToCartGlobal(
+        product: Product,
+        quantity: number,
+        variant?: string | null
+      ) {
+    if (!loggedIn) {
+      setCart((currentCart) => {
+        const existingItem = currentCart.find(
+          (item) =>
+            item.product.id === product.id &&
+            item.product.variant === variant
+        );
+
+        if (existingItem) {
+          return currentCart.map((item) =>
+            item.product.id === product.id &&
+            item.product.variant === variant
+              ? {
+                  ...item,
+                  quantity: item.quantity + quantity,
+                }
+              : item
+          );
+        }
+
+        return [
+          ...currentCart,
+          {
+            product,
+            quantity,
+          },
+        ];
+      });
+
+      setCartOpen(true);
+      return;
+    }
+
+    try {
+      const savedSession = localStorage.getItem(
+        "drl_electronik_session"
+      );
+
+      if (!savedSession) return;
+
+      const sessionData = JSON.parse(savedSession);
+      const accessToken =
+        sessionData?.session?.accessToken;
+
+      if (!accessToken) return;
+
+      await addCustomerCartItem(
+        accessToken,
+        product.id,
+        quantity,
+        variant
+      );
+
+      const response =
+        await getCustomerCart(accessToken);
+
+      const backendItems = Array.isArray(
+        response?.data
+      )
+        ? response.data
+        : [];
+
+      const frontendCart = backendItems.map(
+        (item: any) => ({
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            brand: item.product.brand,
+            model: item.product.model,
+            sku: item.product.sku,
+            category: item.product.category,
+            price: item.product.price,
+            stock: item.product.stock,
+            description: item.product.description,
+            images: item.product.images,
+            family_id: item.product.family_id,
+            variant: item.product.variant,
+          },
+          quantity: item.quantity,
+        })
+      );
+
+      setCart(frontendCart);
+      setCartOpen(true);
+    } catch (error) {
+      console.error(
+        "No se pudo agregar el producto al carrito:",
+        error
+      );
+    }
+  }
+  /*fin addToCartGlobal */
+
+  /*inivio update */
+  async function updateCartQuantityGlobal(
+    productId: number,
+    quantity: number,
+    variant?: string | null
+  ) {
+    if (!loggedIn) {
+      setCart((currentCart) => {
+        if (quantity <= 0) {
+          return currentCart.filter(
+            (item) =>
+              !(
+                item.product.id === productId &&
+                item.product.variant === variant
+              )
+          );
+        }
+
+        return currentCart.map((item) => {
+          if (
+            item.product.id !== productId ||
+            item.product.variant !== variant
+          ) {
+            return item;
+          }
+
+          const stock = Number(
+            item.product.stock || 1
+          );
+
+          return {
+            ...item,
+            quantity: Math.min(quantity, stock),
+          };
+        });
+      });
+
+      return;
+    }
+
+    try {
+      const savedSession = localStorage.getItem(
+        "drl_electronik_session"
+      );
+
+      if (!savedSession) return;
+
+      const sessionData = JSON.parse(savedSession);
+
+      const accessToken =
+        sessionData?.session?.accessToken;
+
+      if (!accessToken) return;
+
+      if (quantity <= 0) {
+        return;
+      }
+
+      await updateCustomerCartItem(
+        accessToken,
+        productId,
+        quantity,
+        variant ?? null
+      );
+
+      const response =
+        await getCustomerCart(accessToken);
+
+      const backendItems = Array.isArray(
+        response?.data
+      )
+        ? response.data
+        : [];
+
+      const frontendCart = backendItems.map(
+        (item: any) => ({
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            brand: item.product.brand,
+            model: item.product.model,
+            sku: item.product.sku,
+            category: item.product.category,
+            price: item.product.price,
+            stock: item.product.stock,
+            description: item.product.description,
+            images: item.product.images,
+            family_id: item.product.family_id,
+            variant: item.product.variant,
+          },
+          quantity: item.quantity,
+        })
+      );
+
+      setCart(frontendCart);
+    } catch (error) {
+      console.error(
+        "No se pudo actualizar la cantidad del carrito:",
+        error
+      );
+    }
+  }
+  /*fin update */
+
+  async function clearCartGlobal() {
+        if (loggedIn) {
           const savedSession = localStorage.getItem(
             "drl_electronik_session"
           );
 
           if (!savedSession) {
-            return;
-          }
-
-          try {
-            const sessionData = JSON.parse(savedSession);
-
-            const accessToken =
-              sessionData?.session?.accessToken;
-
-            if (!accessToken) {
-              console.error(
-                "La sesión no contiene accessToken."
-              );
-              return;
-            }
-
-            const response =
-              await getCustomerCart(accessToken);
-
-            const backendItems = Array.isArray(
-              response?.data
-            )
-              ? response.data
-              : [];
-
-            const frontendCart = backendItems.map(
-              (item: any) => ({
-                product: {
-                  id: item.product.id,
-                  name: item.product.name,
-                  brand: item.product.brand,
-                  model: item.product.model,
-                  sku: item.product.sku,
-                  category: item.product.category,
-                  price: item.product.price,
-                  stock: item.product.stock,
-                  description: item.product.description,
-                  images: item.product.images,
-                  family_id: item.product.family_id,
-                  variant: item.product.variant,
-                },
-                quantity: item.quantity,
-              })
-            );
-
-            setCart(frontendCart);
-          } catch (error) {
-            console.error(
-              "No se pudo cargar el carrito desde el backend:",
-              error
+            throw new Error(
+              "No se encontró la sesión del cliente."
             );
           }
+
+          const sessionData = JSON.parse(savedSession);
+
+          const accessToken =
+            sessionData?.session?.accessToken ??
+            sessionData?.accessToken;
+
+          if (!accessToken) {
+            throw new Error(
+              "No se encontró el token de acceso."
+            );
+          }
+
+          await clearCustomerCart(accessToken);
         }
 
-        if (loggedIn) {
-          loadCustomerCartFromBackend();
-        }
-      }, [loggedIn]);
-
-useEffect(() => {
-      const totalItems = cart.reduce(
-        (total, item) => total + item.quantity,
-        0
-      );
-
-      setCartCount(totalItems);
-    }, [cart]);
-
-/*inivio adToCart */
-async function addToCartGlobal(
-      product: Product,
-      quantity: number,
-      variant?: string | null
-    ) {
-  if (!loggedIn) {
-    setCart((currentCart) => {
-      const existingItem = currentCart.find(
-        (item) =>
-          item.product.id === product.id &&
-          item.product.variant === variant
-      );
-
-      if (existingItem) {
-        return currentCart.map((item) =>
-          item.product.id === product.id &&
-          item.product.variant === variant
-            ? {
-                ...item,
-                quantity: item.quantity + quantity,
-              }
-            : item
-        );
+        setCart([]);
+        setCartCount(0);
       }
-
-      return [
-        ...currentCart,
-        {
-          product,
-          quantity,
-        },
-      ];
-    });
-
-    setCartOpen(true);
-    return;
-  }
-
-  try {
-    const savedSession = localStorage.getItem(
-      "drl_electronik_session"
-    );
-
-    if (!savedSession) return;
-
-    const sessionData = JSON.parse(savedSession);
-    const accessToken =
-      sessionData?.session?.accessToken;
-
-    if (!accessToken) return;
-
-    await addCustomerCartItem(
-      accessToken,
-      product.id,
-      quantity,
-      variant
-    );
-
-    const response =
-      await getCustomerCart(accessToken);
-
-    const backendItems = Array.isArray(
-      response?.data
-    )
-      ? response.data
-      : [];
-
-    const frontendCart = backendItems.map(
-      (item: any) => ({
-        product: {
-          id: item.product.id,
-          name: item.product.name,
-          brand: item.product.brand,
-          model: item.product.model,
-          sku: item.product.sku,
-          category: item.product.category,
-          price: item.product.price,
-          stock: item.product.stock,
-          description: item.product.description,
-          images: item.product.images,
-          family_id: item.product.family_id,
-          variant: item.product.variant,
-        },
-        quantity: item.quantity,
-      })
-    );
-
-    setCart(frontendCart);
-    setCartOpen(true);
-  } catch (error) {
-    console.error(
-      "No se pudo agregar el producto al carrito:",
-      error
-    );
-  }
-}
-/*fin addToCartGlobal */
-
-/*inivio update */
-async function updateCartQuantityGlobal(
-  productId: number,
-  quantity: number,
-  variant?: string | null
-) {
-  if (!loggedIn) {
-    setCart((currentCart) => {
-      if (quantity <= 0) {
-        return currentCart.filter(
-          (item) =>
-            !(
-              item.product.id === productId &&
-              item.product.variant === variant
-            )
-        );
-      }
-
-      return currentCart.map((item) => {
-        if (
-          item.product.id !== productId ||
-          item.product.variant !== variant
-        ) {
-          return item;
-        }
-
-        const stock = Number(
-          item.product.stock || 1
-        );
-
-        return {
-          ...item,
-          quantity: Math.min(quantity, stock),
-        };
-      });
-    });
-
-    return;
-  }
-
-  try {
-    const savedSession = localStorage.getItem(
-      "drl_electronik_session"
-    );
-
-    if (!savedSession) return;
-
-    const sessionData = JSON.parse(savedSession);
-
-    const accessToken =
-      sessionData?.session?.accessToken;
-
-    if (!accessToken) return;
-
-    if (quantity <= 0) {
-      return;
-    }
-
-    await updateCustomerCartItem(
-      accessToken,
-      productId,
-      quantity,
-      variant ?? null
-    );
-
-    const response =
-      await getCustomerCart(accessToken);
-
-    const backendItems = Array.isArray(
-      response?.data
-    )
-      ? response.data
-      : [];
-
-    const frontendCart = backendItems.map(
-      (item: any) => ({
-        product: {
-          id: item.product.id,
-          name: item.product.name,
-          brand: item.product.brand,
-          model: item.product.model,
-          sku: item.product.sku,
-          category: item.product.category,
-          price: item.product.price,
-          stock: item.product.stock,
-          description: item.product.description,
-          images: item.product.images,
-          family_id: item.product.family_id,
-          variant: item.product.variant,
-        },
-        quantity: item.quantity,
-      })
-    );
-
-    setCart(frontendCart);
-  } catch (error) {
-    console.error(
-      "No se pudo actualizar la cantidad del carrito:",
-      error
-    );
-  }
-}
-/*fin update */
 
   return (
     <StorefrontContext.Provider
       value={{
         searchQuery,
         setSearchQuery,
-
+        
+        clearCartGlobal,
+        
         cart,
         setCart,
         addToCartGlobal,

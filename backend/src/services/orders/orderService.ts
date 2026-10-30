@@ -189,7 +189,7 @@ export async function createNewOrder(
   const {
     data: customer,
     error: customerError,
-  } = await supabase
+  } = await supabaseAdmin
     .from("customers")
     .select("id")
     .eq("id", input.customer_id)
@@ -213,7 +213,7 @@ export async function createNewOrder(
     const {
       data: manager,
       error: managerError,
-    } = await supabase
+    } = await supabaseAdmin
       .from("managers")
       .select("id")
       .eq("id", input.manager_id)

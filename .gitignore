@@ -1,0 +1,29 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+
+# Next.js
+.next/
+out/
+
+# Compilación
+build/
+coverage/
+
+# Variables de entorno y credenciales
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Archivos temporales
+.DS_Store
+*.log
+*.tsbuildinfo
+
+# Vercel
+.vercel/
