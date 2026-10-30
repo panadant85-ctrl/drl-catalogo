@@ -19,7 +19,7 @@ type Product = {
   stock?: number | null;
   description?: string | null;
   images?: string[] | null;
-  family_id?: number | null;
+  family_id?: number | string | null;
   variant?: string | null;
 };
 

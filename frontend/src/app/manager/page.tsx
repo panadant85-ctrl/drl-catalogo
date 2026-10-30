@@ -150,20 +150,21 @@ async function handleViewOrders(customer: Customer) {
     console.log("[Gestor] Respuesta de pedidos:", result);
 
     const validOrders = Array.isArray(result.data)
-      ? result.data
-          .filter(
-            (order) =>
-              order !== null &&
-              typeof order === "object" &&
-              order.id != null
-          )
-          .map((order) => ({
-            order: order as Order,
-            items: Array.isArray(order.items)
-              ? (order.items as OrderItem[])
-              : [],
-          }))
-      : [];
+          ? result.data
+              .filter(
+                (order: unknown): order is Record<string, unknown> =>
+                  order !== null &&
+                  typeof order === "object" &&
+                  "id" in order &&
+                  order.id != null
+              )
+              .map((order: Record<string, unknown>) => ({
+                order: order as unknown as Order,
+                items: Array.isArray(order.items)
+                  ? (order.items as OrderItem[])
+                  : [],
+              }))
+          : [];
 
     setCustomerOrders(validOrders);
 

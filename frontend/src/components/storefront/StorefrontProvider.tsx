@@ -27,7 +27,7 @@ type Product = {
   stock?: number | null;
   description?: string | null;
   images?: string[] | null;
-  family_id?: string | null;
+  family_id?: number | string | null;
   variant?: string | null;
 };
 
@@ -377,11 +377,11 @@ useEffect(() => {
       if (!accessToken) return;
 
       await addCustomerCartItem(
-        accessToken,
-        product.id,
-        quantity,
-        variant
-      );
+          accessToken,
+          product.id,
+          quantity,
+          variant ?? null
+        );
 
       const response =
         await getCustomerCart(accessToken);

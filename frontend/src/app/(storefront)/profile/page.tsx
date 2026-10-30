@@ -41,6 +41,7 @@ type CustomerOrderItem = {
 
 type CustomerOrder = {
   id: number;
+  order_number?: string | null;
   created_at?: string | null;
   status?: string | null;
   total?: number | string | null;
@@ -606,14 +607,6 @@ useEffect(() => {
     const cleanLastName2 =
       lastName2.trim();
 
-    const fullName = [
-      cleanFirstName,
-      cleanLastName1,
-      cleanLastName2,
-    ]
-      .filter(Boolean)
-      .join(" ");
-
     try {
       setSaving(true);
       setError("");
@@ -632,10 +625,6 @@ useEffect(() => {
             last_name_2:
               cleanLastName2,
 
-            full_name:
-              fullName ||
-              profile?.full_name ||
-              null,
             identification:
               cleanIdentification || null,
             email:
